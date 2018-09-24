@@ -7,9 +7,19 @@
 //
 
 import UIKit
+import Foundation
+
+
+extension movieViewController: UISearchResultsUpdating {
+   
+    func updateSearchResults(for searchController: UISearchController) {
+       
+        
+    }
+}
 
 class movieViewController: UIViewController, UITableViewDataSource, UITableViewDelegate {
-    
+    let searchController = UISearchController(searchResultsController: nil)
 
     var movieInformation: [NSDictionary]?
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -17,29 +27,69 @@ class movieViewController: UIViewController, UITableViewDataSource, UITableViewD
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        
+      //  tableView.rowHeight = UITableViewAutomaticDimension
+      //  tableView.estimatedRowHeight = 400
+        
         let cell = tableView.dequeueReusableCell(withIdentifier: "movieDetail", for: indexPath) as! movieTableViewCell
         let movieInfoString = movieInformation![indexPath.row] as! NSDictionary
+   //     print(movieInfoString)
+        let movieReleaseDate = movieInfoString["release_date"] as! String
         let movieTitleString = movieInfoString["original_title"] as! String
         let movieDetailString = movieInfoString["overview"] as! String
+        let movieVoteString = movieInfoString["vote_count"] as! Int
+        let movieRating = movieInfoString["vote_average"] as! Double
+       
+        let movieVoteString2 = String(movieVoteString)
+      //  print(movieVoteString2)
+        cell.movieRate.text = String(movieRating)
+        if (movieRating > 7.0) {
+            cell.movieRate.backgroundColor = UIColor(red:0.73, green:0.00, blue:0.05, alpha:1.0)
+        } else if (movieRating > 6.0) {
+            cell.movieRate.backgroundColor = UIColor(red:0.96, green:0.26, blue:0.21, alpha:1.0)
+        } else if (movieRating > 1.0) {
+            cell.movieRate.backgroundColor = UIColor(red:1.00, green:0.47, blue:0.38, alpha:1.0)
+        } else {
+          //  cell.movieRate.backgroundColor = UIColor.gray
+        }
+        cell.movieRate.layer.masksToBounds = true
+        cell.movieRate.layer.cornerRadius = 6
+        
+        
         cell.movieTitle.text = movieTitleString
         cell.movieDetail.text = movieDetailString
-        
+     //   print(movieVoteString)
+        cell.movieRelease.text = "Released on: " + movieReleaseDate
+        cell.movieVote.text = movieVoteString2 + " votes"
         let moviePosterString = movieInfoString["backdrop_path"] as! String
         let moviePosterURL = "https://image.tmdb.org/t/p/w185" + moviePosterString
-        
+    //    print(moviePosterURL)
         let url = URL(string: moviePosterURL)
-        let data = try? Data(contentsOf: url!) //make sure your image in this url does exist, otherwise unwrap in a if let check / try-catch
+        let data = try? Data(contentsOf: url!)
+   
+        
+       // var imageFrame = UIImageView(frame: CGRect(origin: 100, size: 200))
+        
         cell.movieImage.image = UIImage(data: data!)
         
+        let postData = NSData(data: "{}".data(using: String.Encoding.utf8)!)
         
+        var request = NSMutableURLRequest(url: NSURL(string: "https://api.themoviedb.org/3/genre/movie/list?language=en-US&api_key=%3C%3Capi_key%3E%3E")! as URL)
+        request.httpMethod = "GET"
+        request.httpBody = postData as Data
         
+        let session = URLSession.shared
+        let dataTask = session.dataTask(with: request as URLRequest, completionHandler: { (data, response, error) -> Void in
+            if (error != nil) {
+            //   print(error)
+            } else {
+                let httpResponse = response as? HTTPURLResponse
+              //  print(httpResponse)
+            }
+        })
         
-    //    cell.movieTitle.text = movieTitleString as String
-      
-    
-        /*display*/
+        dataTask.resume()
         
-      //  cell.textLabel?.text = movieTitleString as String
         return cell
     }
     
@@ -47,6 +97,14 @@ class movieViewController: UIViewController, UITableViewDataSource, UITableViewD
     @IBOutlet weak var movieTableView: UITableView!
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        searchController.searchResultsUpdater = self
+        searchController.obscuresBackgroundDuringPresentation = false
+        searchController.searchBar.placeholder = "Search movies"
+        navigationItem.searchController = searchController
+        definesPresentationContext = true
+        
+        
         movieTableView.dataSource = self
         movieTableView.delegate = self
         
